@@ -13,6 +13,13 @@ const RegisterForm = () => {
     confirmPassword: ''
   });
 
+  const [selectedRole, setSelectedRole] = useState('CUSTOMER');
+  const [driverInfo, setDriverInfo] = useState({
+    licenseNumber: '',
+    vehicleType: 'car',
+    vehicleNumber: ''
+  });
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
@@ -39,7 +46,8 @@ const RegisterForm = () => {
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
-      role: 'CUSTOMER'
+      role: selectedRole,
+      ...(selectedRole === 'DRIVER' && driverInfo)
     };
 
     dispatch(clearError());
@@ -123,6 +131,83 @@ const RegisterForm = () => {
                 placeholder="0706417103"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account Type
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="CUSTOMER"
+                    checked={selectedRole === 'CUSTOMER'}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-gray-700">Customer</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="DRIVER"
+                    checked={selectedRole === 'DRIVER'}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-gray-700">Driver</span>
+                </label>
+              </div>
+            </div>
+
+            {selectedRole === 'DRIVER' && (
+              <div className="space-y-4 border-t pt-4 mt-4">
+                <h3 className="text-lg font-semibold text-gray-900">Driver Information</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    License Number
+                  </label>
+                  <input
+                    type="text"
+                    value={driverInfo.licenseNumber}
+                    onChange={(e) => setDriverInfo({...driverInfo, licenseNumber: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required={selectedRole === 'DRIVER'}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vehicle Type
+                  </label>
+                  <select
+                    value={driverInfo.vehicleType}
+                    onChange={(e) => setDriverInfo({...driverInfo, vehicleType: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required={selectedRole === 'DRIVER'}
+                  >
+                    <option value="car">Car</option>
+                    <option value="motorbike">Motorbike</option>
+                    <option value="bike">Bike</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vehicle Number
+                  </label>
+                  <input
+                    type="text"
+                    value={driverInfo.vehicleNumber}
+                    onChange={(e) => setDriverInfo({...driverInfo, vehicleNumber: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="51A-12345"
+                    required={selectedRole === 'DRIVER'}
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

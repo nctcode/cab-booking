@@ -25,7 +25,6 @@ export const register = createAsyncThunk(
   }
 );
 
-// THÊM getProfile
 export const getProfile = createAsyncThunk(
   'auth/getProfile',
   async (_, { rejectWithValue }) => {
@@ -38,7 +37,6 @@ export const getProfile = createAsyncThunk(
   }
 );
 
-// THÊM updateProfile (tùy chọn)
 export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (profileData, { rejectWithValue }) => {
@@ -60,7 +58,17 @@ const authSlice = createSlice({
     refreshToken: localStorage.getItem('refresh_token') || null,
     loading: false,
     error: null,
-    isAuthenticated: !!localStorage.getItem('access_token')
+    isAuthenticated: !!localStorage.getItem('access_token'),
+    role: (() => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return null;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.role || payload.userRole || null;
+      } catch {
+        return null;
+      }
+    })()
   },
   reducers: {
     logout: (state) => {
@@ -72,13 +80,17 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
+      state.role = null;
     },
     clearError: (state) => {
       state.error = null;
     },
-    // THÊM reducer để set user
     setUser: (state, action) => {
       state.user = action.payload;
+      state.role = action.payload?.role || null;
+    },
+    setRole: (state, action) => {
+      state.role = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -94,9 +106,20 @@ const authSlice = createSlice({
         state.accessToken = action.payload.data?.tokens?.accessToken || null;
         state.refreshToken = action.payload.data?.tokens?.refreshToken || null;
         state.isAuthenticated = true;
+        state.role = action.payload.data?.user?.role || null;
         
         if (state.accessToken) {
           localStorage.setItem('access_token', state.accessToken);
+          
+          // Try to extract role from token if not in response
+          if (!state.role) {
+            try {
+              const payload = JSON.parse(atob(state.accessToken.split('.')[1]));
+              state.role = payload.role || payload.userRole || null;
+            } catch {
+              // Keep the role as is
+            }
+          }
         }
         if (state.refreshToken) {
           localStorage.setItem('refresh_token', state.refreshToken);
@@ -106,6 +129,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+        state.role = null;
       })
       
       // Register
@@ -119,9 +143,20 @@ const authSlice = createSlice({
         state.accessToken = action.payload.data?.tokens?.accessToken || null;
         state.refreshToken = action.payload.data?.tokens?.refreshToken || null;
         state.isAuthenticated = true;
+        state.role = action.payload.data?.user?.role || null;
         
         if (state.accessToken) {
           localStorage.setItem('access_token', state.accessToken);
+          
+          // Try to extract role from token if not in response
+          if (!state.role) {
+            try {
+              const payload = JSON.parse(atob(state.accessToken.split('.')[1]));
+              state.role = payload.role || payload.userRole || null;
+            } catch {
+              // Keep the role as is
+            }
+          }
         }
         if (state.refreshToken) {
           localStorage.setItem('refresh_token', state.refreshToken);
@@ -139,6 +174,7 @@ const authSlice = createSlice({
       .addCase(getProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.data || state.user;
+        state.role = action.payload.data?.role || state.role;
       })
       .addCase(getProfile.rejected, (state) => {
         state.loading = false;
@@ -152,6 +188,7 @@ const authSlice = createSlice({
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = { ...state.user, ...action.payload.data };
+        state.role = action.payload.data?.role || state.role;
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
@@ -160,6 +197,5 @@ const authSlice = createSlice({
   }
 });
 
-// THÊM export cho setUser
-export const { logout, clearError, setUser } = authSlice.actions;
+export const { logout, clearError, setUser, setRole } = authSlice.actions;
 export default authSlice.reducer;

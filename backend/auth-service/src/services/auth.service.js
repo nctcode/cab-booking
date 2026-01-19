@@ -21,6 +21,30 @@ class AuthService {
       }
     }
 
+    // Validate role
+    const validRoles = ['CUSTOMER', 'DRIVER', 'ADMIN'];
+    if (!validRoles.includes(userData.role)) {
+      throw new Error('Invalid role');
+    }
+
+    // Admin registration restriction (only by existing admins)
+    if (userData.role === 'ADMIN') {
+      throw new Error('Admin registration is restricted');
+    }
+
+    // Driver-specific validation
+    if (userData.role === 'DRIVER') {
+      if (!userData.licenseNumber) {
+        throw new Error('License number is required for drivers');
+      }
+      if (!userData.vehicleType) {
+        throw new Error('Vehicle type is required for drivers');
+      }
+      if (!userData.vehicleNumber) {
+        throw new Error('Vehicle number is required for drivers');
+      }
+    }
+
     // Create new user
     const user = await UserModel.createUser(userData);
 
@@ -28,9 +52,9 @@ class AuthService {
     const accessToken = JWTService.generateAccessToken(user);
     const refreshToken = JWTService.generateRefreshToken(user);
 
-    // Store refresh token in database and Redis
+    // Store refresh token
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
     await prisma.refreshToken.create({
       data: {
