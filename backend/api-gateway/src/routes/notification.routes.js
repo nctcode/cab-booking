@@ -2,42 +2,38 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const services = require('../config/services.config');
 const { verifyToken } = require('../middlewares/auth.middleware');
-const { rideLimiter } = require('../middlewares/rate-limit.middleware');
 
 const router = express.Router();
 
-// Apply authentication
+// Apply authentication to all notification routes
 router.use(verifyToken);
 
-// Apply rate limiting only to ride request endpoint
-router.post('/request', rideLimiter);
-
-// Proxy configuration for ride service
-const rideProxy = createProxyMiddleware({
-  target: services.ride.url,
+// Proxy configuration for notification service
+const notificationProxy = createProxyMiddleware({
+  target: services.notification.url,
   changeOrigin: true,
   pathRewrite: {
-    '^/api/rides': '/api/rides',
+    '^/api/notifications': '/api/notifications',
   },
   onProxyReq: (proxyReq, req, res) => {
-    // Forward user info to ride service
+    // Forward user info to notification service
     if (req.user) {
       proxyReq.setHeader('X-User-Id', req.user.id);
       proxyReq.setHeader('X-User-Role', req.user.role);
     }
-    console.log(`[Ride Service] ${req.method} ${req.path} -> ${services.ride.url}${req.path}`);
+    console.log(`[Notification Service] ${req.method} ${req.path} -> ${services.notification.url}${req.path}`);
   },
   onError: (err, req, res) => {
-    console.error('[Ride Service] Proxy Error:', err);
+    console.error('[Notification Service] Proxy Error:', err);
     res.status(503).json({
       success: false,
-      message: 'Ride service unavailable',
+      message: 'Notification service unavailable',
       error: err.message,
     });
   },
 });
 
-// Route all ride requests to ride service
-router.use('/', rideProxy);
+// Route all notification requests to notification service
+router.use('/', notificationProxy);
 
 module.exports = router;

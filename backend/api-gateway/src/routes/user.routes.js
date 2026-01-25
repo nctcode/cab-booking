@@ -2,42 +2,38 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const services = require('../config/services.config');
 const { verifyToken } = require('../middlewares/auth.middleware');
-const { rideLimiter } = require('../middlewares/rate-limit.middleware');
 
 const router = express.Router();
 
-// Apply authentication
+// Apply authentication to all user routes
 router.use(verifyToken);
 
-// Apply rate limiting only to ride request endpoint
-router.post('/request', rideLimiter);
-
-// Proxy configuration for ride service
-const rideProxy = createProxyMiddleware({
-  target: services.ride.url,
+// Proxy configuration for user service
+const userProxy = createProxyMiddleware({
+  target: services.user.url,
   changeOrigin: true,
   pathRewrite: {
-    '^/api/rides': '/api/rides',
+    '^/api/users': '/api/users',
   },
   onProxyReq: (proxyReq, req, res) => {
-    // Forward user info to ride service
+    // Forward user info to user service
     if (req.user) {
       proxyReq.setHeader('X-User-Id', req.user.id);
       proxyReq.setHeader('X-User-Role', req.user.role);
     }
-    console.log(`[Ride Service] ${req.method} ${req.path} -> ${services.ride.url}${req.path}`);
+    console.log(`[User Service] ${req.method} ${req.path} -> ${services.user.url}${req.path}`);
   },
   onError: (err, req, res) => {
-    console.error('[Ride Service] Proxy Error:', err);
+    console.error('[User Service] Proxy Error:', err);
     res.status(503).json({
       success: false,
-      message: 'Ride service unavailable',
+      message: 'User service unavailable',
       error: err.message,
     });
   },
 });
 
-// Route all ride requests to ride service
-router.use('/', rideProxy);
+// Route all user requests to user service
+router.use('/', userProxy);
 
 module.exports = router;
